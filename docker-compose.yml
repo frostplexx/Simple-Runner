@@ -4,14 +4,10 @@ services:
   runner:
     build: .
     container_name: gitlab-runner
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
     environment:
       - NODE_ENV=production
-      - GITLAB_REPO_URL=${GITLAB_REPO_URL}
-      - GITLAB_USERNAME=${GITLAB_USERNAME}
-      - GITLAB_TOKEN=${GITLAB_TOKEN}
-      - POLL_INTERVAL=${POLL_INTERVAL:-30}
     volumes:
       - /home/ubuntu/runner/data:/app/data
       - /home/ubuntu/repos:/app/repos
