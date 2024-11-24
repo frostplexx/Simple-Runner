@@ -12,10 +12,9 @@ services:
       - GITLAB_USERNAME=${GITLAB_USERNAME}
       - GITLAB_TOKEN=${GITLAB_TOKEN}
       - POLL_INTERVAL=${POLL_INTERVAL:-30}
-      - PORT=3000
     volumes:
-      - runner-data:/app/data
-      - runner-repos:/app/repos
+      - gitlab-runner-data:/app/data
+      - gitlab-runner-repos:/app/repos
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
@@ -25,5 +24,5 @@ services:
       start_period: 10s
 
 volumes:
-  runner-data:
-  runner-repos:
+  gitlab-runner-data:
+  gitlab-runner-repos:
