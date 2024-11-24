@@ -1,0 +1,32 @@
+{
+  "name": "gitlab-ci-runner",
+  "version": "1.0.0",
+  "description": "GitLab CI Runner with live output monitoring",
+  "main": "dist/server/index.js",
+  "scripts": {
+    "start": "node dist/server/index.js",
+    "dev": "ts-node-dev src/server/index.ts",
+    "build": "tsc",
+    "build:client": "tsc -p tsconfig.client.json",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "simple-git": "^3.22.0",
+    "socket.io": "^4.7.2",
+    "sqlite3": "^5.1.6",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/socket.io": "^3.0.2",
+    "@types/sqlite3": "^3.1.11",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.2"
+  }
+}
