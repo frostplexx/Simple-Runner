@@ -24,22 +24,11 @@ FROM node:20-alpine
 # Install runtime dependencies
 RUN apk add --no-cache bash git sqlite
 
-WORKDIR /app
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/data /app/repos /app/public \
-    && chown -R node:node /app
-
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
-
 # Install production dependencies only
 RUN npm ci --only=production
 
 # Create volume mount points
-VOLUME ["/app/data", "/app/repos"]
+VOLUME ["/data", "/repos"]
 
 # Switch to non-root user
 USER node
