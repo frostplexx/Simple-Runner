@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node dist/server/index.js",
     "dev": "ts-node-dev src/server/index.ts",
-    "build": "tsc",
-    "build:client": "tsc -p tsconfig.client.json",
+    "clean": "ts-node src/scripts/cleanup.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

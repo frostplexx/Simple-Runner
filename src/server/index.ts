@@ -1,4 +1,3 @@
-// src/server/index.ts
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';

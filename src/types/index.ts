@@ -1,22 +1,11 @@
-
-export interface Config {
-    port: number;
-    gitlab: {
-        url: string;
-        username: string;
-        password: string;
-        repo: string;
-    };
-    webhook: {
-        url?: string;
-    };
-}
+export type RunStatus = 'running' | 'completed' | 'failed';
 
 export interface Run {
     id: string;
     timestamp: string;
+    status: RunStatus;
     success: boolean | null;
-    output: string;
+    output: string | null;
 }
 
 export interface RunUpdate {
@@ -24,8 +13,23 @@ export interface RunUpdate {
     output: string;
 }
 
-export interface WebhookPayload {
-    runId: string;
-    success: boolean;
+export interface Config {
+    port: number;
+    corsOrigins: string | string[];
+    gitlab: {
+        repoUrl: string;
+        username: string;
+        token: string;
+    };
+    webhook?: {
+        url?: string;
+    };
+}
+
+export interface DBRun {
+    id: string;
     timestamp: string;
+    status: RunStatus;
+    success: number;  // SQLite stores booleans as 0/1
+    output: string | null;
 }
