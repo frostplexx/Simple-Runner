@@ -1,8 +1,13 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,7 +19,6 @@ COPY package*.json ./
 
 # Install dependencies including devDependencies
 RUN npm install
-
 RUN npm update
 
 # Copy source code
@@ -25,10 +29,15 @@ RUN npm run build:ts && \
     cp -r src/public dist/
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 # Install runtime dependencies
-RUN apk add --no-cache bash git sqlite
+RUN apt-get update && apt-get install -y \
+    bash \
+    git \
+    sqlite3 \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
