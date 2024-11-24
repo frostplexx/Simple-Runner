@@ -12,6 +12,39 @@ class GitLabRunner {
     }
 
     initializeSocketListeners() {
+
+        this.socket.on('commit-detected', ({ runId, commit }) => {
+            // Show notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('New Commit Detected', {
+                    body: `${commit.author}: ${commit.message}`
+                });
+            }
+
+            // Add a visual indicator
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <strong>New Commit Detected</strong>
+                    <small>${new Date().toLocaleTimeString()}</small>
+                </div>
+                <div class="toast-body">
+                    <div><strong>${commit.author}</strong></div>
+                    <div>${commit.message}</div>
+                    <div class="toast-footer">
+                        <small>Commit ${commit.id}</small>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Remove toast after 5 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        });
+
         this.socket.on('connect', () => {
             console.log('Connected to server');
         });

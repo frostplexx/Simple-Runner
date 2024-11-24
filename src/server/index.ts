@@ -7,6 +7,7 @@ import { initializeDb } from './db';
 import { startRunner } from './runner';
 import config from '../config';
 import { db } from './db';
+import { RepositoryPoller } from './poller';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -24,6 +25,7 @@ interface RunParams {
     id: string;
 }
 
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -34,6 +36,10 @@ const io = new Server(server, {
     pingTimeout: 60000,
     connectTimeout: 60000
 });
+
+
+// Initialize poller
+const poller = new RepositoryPoller(io);
 
 // Middleware setup
 app.use(cors({
@@ -144,6 +150,7 @@ app.get('/api/runs/:id', async (req: Request<RunParams>, res: Response, next: Ne
     }
 });
 
+
 app.get('*', (req: Request, res: Response, next: NextFunction) => {
     if (!req.path.startsWith('/api/')) {
         res.sendFile(path.join(__dirname, '../../public/index.html'));
@@ -190,10 +197,17 @@ const shutdownGracefully = async () => {
 process.on('SIGTERM', shutdownGracefully);
 process.on('SIGINT', shutdownGracefully);
 
+// Start the poller when the server starts
+let pollIntervalSeconds = 30; // Poll every 30 seconds by default
+if (process.env.POLL_INTERVAL) {
+    pollIntervalSeconds = parseInt(process.env.POLL_INTERVAL, 10);
+}
+
 // Start server
 server.listen(config.port, () => {
     console.log(`Server running on port ${config.port}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    poller.start(pollIntervalSeconds);
 });
 
 // Handle uncaught errors

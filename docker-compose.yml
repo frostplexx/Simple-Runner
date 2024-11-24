@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  runner:
+    build: .
+    container_name: gitlab-runner
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - GITLAB_REPO_URL=${GITLAB_REPO_URL}
+      - GITLAB_USERNAME=${GITLAB_USERNAME}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - POLL_INTERVAL=${POLL_INTERVAL:-30}
+      - PORT=3000
+    volumes:
+      - runner-data:/app/data
+      - runner-repos:/app/repos
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  runner-data:
+  runner-repos:
