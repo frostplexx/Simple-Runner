@@ -3,10 +3,10 @@ import path from 'path';
 import { Run, RunUpdate } from '../types';
 
 const dbPath = path.join(__dirname, '../../data/runs.db');
-const db = new sqlite3.Database(dbPath);
+const _db = new sqlite3.Database(dbPath);
 
 export function initializeDb(): void {
-    db.run(`
+    _db.run(`
     CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +19,7 @@ export function initializeDb(): void {
 export const dbMethods = {
     createRun: (runId: string): Promise<void> => {
         return new Promise((resolve, reject) => {
-            db.run(
+            _db.run(
                 'INSERT INTO runs (id) VALUES (?)',
                 [runId],
                 (err) => err ? reject(err) : resolve()
@@ -29,7 +29,7 @@ export const dbMethods = {
 
     updateRun: (runId: string, update: RunUpdate): Promise<void> => {
         return new Promise((resolve, reject) => {
-            db.run(
+            _db.run(
                 'UPDATE runs SET success = ?, output = ? WHERE id = ?',
                 [update.success, update.output, runId],
                 (err) => err ? reject(err) : resolve()
@@ -39,7 +39,7 @@ export const dbMethods = {
 
     getRun: (runId: string): Promise<Run | null> => {
         return new Promise((resolve, reject) => {
-            db.get(
+            _db.get(
                 'SELECT * FROM runs WHERE id = ?',
                 [runId],
                 (err, row) => {
@@ -52,7 +52,7 @@ export const dbMethods = {
 
     getAllRuns: (): Promise<Run[]> => {
         return new Promise((resolve, reject) => {
-            db.all(
+            _db.all(
                 'SELECT * FROM runs ORDER BY timestamp DESC',
                 (err, rows) => {
                     if (err) reject(err);

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitLab CI Runner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            min-height: 600px;
+        }
+
+        .runs-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .output-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        #output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+            margin: 0;
+        }
+
+        .run-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: transform 0.1s;
+            border-left: 4px solid transparent;
+        }
+
+        .run-item:hover {
+            transform: translateX(5px);
+        }
+
+        .run-item.success {
+            border-left-color: #28a745;
+        }
+
+        .run-item.failure {
+            border-left-color: #dc3545;
+        }
+
+        .run-item.running {
+            border-left-color: #007bff;
+            animation: pulse 2s infinite;
+        }
+
+        .run-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .run-timestamp {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.failure {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.running {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GitLab CI Runner</h1>
+            <button id="startRun">Start New Run</button>
+        </header>
+        
+        <main>
+            <div class="runs-container">
+                <h2>Runs</h2>
+                <div id="runsList"></div>
+            </div>
+            
+            <div class="output-container">
+                <h2>Output</h2>
+                <pre id="output"></pre>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        class GitLabRunner {
+            constructor() {
+                // Connect to the backend server - make this configurable
+                this.socket = io('http://localhost:3000');
+                this.currentRunId = null;
+                this.initializeSocketListeners();
+                this.initializeUIListeners();
+                this.requestNotificationPermission();
+                this.loadRuns();
+            }
+
+            initializeSocketListeners() {
+                this.socket.on('output', ({ runId, chunk }) => {
+                    if (runId === this.currentRunId) {
+                        this.appendOutput(chunk);
+                    }
+                });
+
+                this.socket.on('run-complete', ({ runId, success }) => {
+                    this.updateRunStatus(runId, success);
+                    this.loadRuns();
+                    this.showNotification(runId, success);
+                });
+            }
+
+            initializeUIListeners() {
+                document.getElementById('startRun').addEventListener('click', () => this.startNewRun());
+            }
+
+            async requestNotificationPermission() {
+                if ('Notification' in window) {
+                    await Notification.requestPermission();
+                }
+            }
+
+            async startNewRun() {
+                try {
+                    const response = await fetch('/api/runs/start', { method: 'POST' });
+                    const { runId } = await response.json();
+                    this.currentRunId = runId;
+                    this.clearOutput();
+                    await this.loadRuns();
+                    
+                    // Add temporary running state
+                    const runsList = document.getElementById('runsList');
+                    const runItem = document.createElement('div');
+                    runItem.className = 'run-item running';
+                    runItem.dataset.runId = runId;
+                    runItem.innerHTML = `
+                        <div class="run-title">
+                            Run ${runId}
+                            <span class="status-badge running">Running</span>
+                        </div>
+                        <div class="run-timestamp">Started ${new Date().toLocaleString()}</div>
+                    `;
+                    runsList.insertBefore(runItem, runsList.firstChild);
+                } catch (error) {
+                    console.error('Failed to start run:', error);
+                    alert('Failed to start run. Please try again.');
+                }
+            }
+
+            async loadRuns() {
+                try {
+                    const response = await fetch('/api/runs');
+                    const runs = await response.json();
+                    this.displayRuns(runs);
+                } catch (error) {
+                    console.error('Failed to load runs:', error);
+                    document.getElementById('runsList').innerHTML = 
+                        '<div class="loading">Failed to load runs. Please refresh.</div>';
+                }
+            }
+
+            displayRuns(runs) {
+                const runsList = document.getElementById('runsList');
+                if (!runs.length) {
+                    runsList.innerHTML = '<div class="loading">No runs yet. Start a new run!</div>';
+                    return;
+                }
+
+                runsList.innerHTML = runs.map(run => `
+                    <div class="run-item ${this.getRunStatus(run)}" 
+                         data-run-id="${run.id}"
+                         onclick="app.showRun('${run.id}')">
+                        <div class="run-title">
+                            Run ${run.id}
+                            <span class="status-badge ${this.getRunStatus(run)}">
+                                ${this.getRunStatusText(run)}
+                            </span>
+                        </div>
+                        <div class="run-timestamp">${new Date(run.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            }
+
+            getRunStatus(run) {
+                if (run.success === null) return 'running';
+                return run.success ? 'success' : 'failure';
+            }
+
+            getRunStatusText(run) {
+                if (run.success === null) return 'Running';
+                return run.success ? 'Success' : 'Failed';
+            }
+
+            async showRun(runId) {
+                try {
+                    this.currentRunId = runId;
+                    const response = await fetch(`/api/runs/${runId}`);
+                    const run = await response.json();
+                    
+                    // Update output
+                    const outputElement = document.getElementById('output');
+                    outputElement.textContent = run.output || '';
+                    outputElement.scrollTop = outputElement.scrollHeight;
+                    
+                    // Highlight selected run
+                    document.querySelectorAll('.run-item').forEach(item => {
+                        item.style.background = item.dataset.runId === runId ? '#e9ecef' : 'white';
+                    });
+                } catch (error) {
+                    console.error('Failed to load run:', error);
+                    document.getElementById('output').textContent = 'Failed to load run output.';
+                }
+            }
+
+            appendOutput(chunk) {
+                const output = document.getElementById('output');
+                output.textContent += chunk;
+                output.scrollTop = output.scrollHeight;
+            }
+
+            clearOutput() {
+                document.getElementById('output').textContent = '';
+            }
+
+            updateRunStatus(runId, success) {
+                const runElement = document.querySelector(`[data-run-id="${runId}"]`);
+                if (runElement) {
+                    runElement.classList.remove('running', 'success', 'failure');
+                    runElement.classList.add(success ? 'success' : 'failure');
+                    
+                    const statusBadge = runElement.querySelector('.status-badge');
+                    if (statusBadge) {
+                        statusBadge.className = `status-badge ${success ? 'success' : 'failure'}`;
+                        statusBadge.textContent = success ? 'Success' : 'Failed';
+                    }
+                }
+            }
+
+            showNotification(runId, success) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`CI Run ${success ? 'Succeeded' : 'Failed'}`, {
+                        body: `Run ${runId} completed at ${new Date().toLocaleString()}`
+                    });
+                }
+            }
+        }
+
+        // Initialize the application
+        const app = new GitLabRunner();
+        window.app = app; // Make it available globally for onclick handlers
+    </script>
+</body>
+</html>
