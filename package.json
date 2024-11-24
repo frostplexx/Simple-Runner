@@ -4,14 +4,21 @@
   "description": "GitLab CI Runner with live output monitoring",
   "main": "dist/server/index.js",
   "scripts": {
+"clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "build": "tsc",
+    "start": "node dist/server/index.js",
     "dev": "ts-node-dev src/server/index.ts",
-    "clean": "ts-node src/scripts/cleanup.ts",
     "docker:build": "ts-node src/scripts/docker.ts build",
     "docker:start": "ts-node src/scripts/docker.ts start",
     "docker:stop": "ts-node src/scripts/docker.ts stop",
     "docker:logs": "ts-node src/scripts/docker.ts logs",
     "docker:clean": "ts-node src/scripts/docker.ts clean",
-    "docker:restart": "ts-node src/scripts/docker.ts restart"
+    "docker:restart": "ts-node src/scripts/docker.ts restart",
+          "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "jest",
+    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{js,html,css}\""
   },
   "dependencies": {
     "express": "^4.18.2",
