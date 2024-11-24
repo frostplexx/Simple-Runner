@@ -13,8 +13,8 @@ services:
       - GITLAB_TOKEN=${GITLAB_TOKEN}
       - POLL_INTERVAL=${POLL_INTERVAL:-30}
     volumes:
-      - gitlab-runner-data:/app/data
-      - gitlab-runner-repos:/app/repos
+      - /home/ubuntu/runner/data:/app/data
+      - /home/ubuntu/repos:/app/repos
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
