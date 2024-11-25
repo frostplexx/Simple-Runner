@@ -6,52 +6,38 @@ class GitLabRunner {
         this.initializeUIListeners();
         this.requestNotificationPermission();
         this.loadRuns();
-
-        // Refresh runs list periodically
         setInterval(() => this.loadRuns(), 10000);
     }
 
     initializeSocketListeners() {
-
         this.socket.on('commit-detected', ({ runId, commit }) => {
-            // Show notification
             if ('Notification' in window && Notification.permission === 'granted') {
                 new Notification('New Commit Detected', {
                     body: `${commit.author}: ${commit.message}`
                 });
             }
 
-            // Add a visual indicator
             const toast = document.createElement('div');
-            toast.className = 'toast';
+            toast.className = 'fixed bottom-5 right-5 bg-white rounded-lg shadow-lg max-w-sm overflow-hidden animate-slide-in z-50';
             toast.innerHTML = `
-                <div class="toast-header">
+                <div class="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
                     <strong>New Commit Detected</strong>
                     <small>${new Date().toLocaleTimeString()}</small>
                 </div>
-                <div class="toast-body">
-                    <div><strong>${commit.author}</strong></div>
+                <div class="p-4">
+                    <div class="font-semibold">${commit.author}</div>
                     <div>${commit.message}</div>
-                    <div class="toast-footer">
+                    <div class="mt-2 text-gray-500">
                         <small>Commit ${commit.id}</small>
                     </div>
                 </div>
             `;
             document.body.appendChild(toast);
-
-            // Remove toast after 5 seconds
-            setTimeout(() => {
-                toast.remove();
-            }, 5000);
+            setTimeout(() => toast.remove(), 5000);
         });
 
-        this.socket.on('connect', () => {
-            console.log('Connected to server');
-        });
-
-        this.socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-        });
+        this.socket.on('connect', () => console.log('Connected to server'));
+        this.socket.on('disconnect', () => console.log('Disconnected from server'));
 
         this.socket.on('output', ({ runId, chunk }) => {
             if (runId === this.currentRunId) {
@@ -68,14 +54,11 @@ class GitLabRunner {
 
     initializeUIListeners() {
         document.getElementById('startRun').addEventListener('click', () => this.startNewRun());
-
-        // Only handle Ctrl/Cmd + N for new run, let browser handle Ctrl/Cmd + R
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
                 e.preventDefault();
                 this.startNewRun();
             }
-            // Let the browser handle Ctrl/Cmd + R normally
         });
     }
 
@@ -86,8 +69,8 @@ class GitLabRunner {
     }
 
     async startNewRun() {
+        const startButton = document.getElementById('startRun');
         try {
-            const startButton = document.getElementById('startRun');
             startButton.disabled = true;
             startButton.textContent = 'Starting...';
 
@@ -101,7 +84,6 @@ class GitLabRunner {
             console.error('Failed to start run:', error);
             alert('Failed to start run. Please try again.');
         } finally {
-            const startButton = document.getElementById('startRun');
             startButton.disabled = false;
             startButton.textContent = 'Start New Run';
         }
@@ -113,7 +95,6 @@ class GitLabRunner {
             const { data: runs } = await response.json();
             this.displayRuns(runs);
 
-            // If we have a current run, update its output
             if (this.currentRunId) {
                 const currentRun = runs.find(run => run.id === this.currentRunId);
                 if (currentRun && currentRun.status !== 'running') {
@@ -123,32 +104,30 @@ class GitLabRunner {
         } catch (error) {
             console.error('Failed to load runs:', error);
             document.getElementById('runsList').innerHTML =
-                '<div class="loading">Failed to load runs. Please refresh.</div>';
+                '<div class="p-4 text-gray-500">Failed to load runs. Please refresh.</div>';
         }
     }
 
     displayRuns(runs) {
         const runsList = document.getElementById('runsList');
         if (!runs.length) {
-            runsList.innerHTML = '<div class="loading">No runs yet. Start a new run!</div>';
+            runsList.innerHTML = '<div class="p-4 text-gray-500">No runs yet. Start a new run!</div>';
             return;
         }
 
         runsList.innerHTML = runs.map(run => `
-            <div class="run-item ${this.getRunStatus(run)}" 
+            <div class="run-item p-4 mb-2.5 rounded-lg bg-white cursor-pointer transition-all hover:translate-x-1 hover:shadow-sm border border-gray-200 flex flex-col gap-2 ${this.getRunStatus(run)}"
                  data-run-id="${run.id}"
                  onclick="app.showRun('${run.id}')">
-                <div class="run-item-content">
-                    <div class="run-item-header">
-                        <div class="run-title">Run ${run.id}</div>
-                        <div class="status-badge ${this.getRunStatus(run)}">
-                            ${this.getRunStatusText(run)}
-                        </div>
+                <div class="flex justify-between items-center">
+                    <div class="font-semibold text-gray-800">Run ${run.id}</div>
+                    <div class="px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${this.getRunStatusClasses(run)}">
+                        ${this.getRunStatusText(run)}
                     </div>
-                    <div class="run-timestamp">
-                        ${new Date(run.timestamp).toLocaleString()}
-                        ${run.status === 'running' ? '<span class="spinner">⟳</span>' : ''}
-                    </div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    ${new Date(run.timestamp).toLocaleString()}
+                    ${run.status === 'running' ? '<span class="animate-spin ml-2">⟳</span>' : ''}
                 </div>
             </div>
         `).join('');
@@ -156,13 +135,23 @@ class GitLabRunner {
         if (this.currentRunId) {
             const currentElement = runsList.querySelector(`[data-run-id="${this.currentRunId}"]`);
             if (currentElement) {
-                currentElement.classList.add('selected');
+                currentElement.classList.add('ring-2', 'ring-blue-500');
             }
         }
     }
 
     getRunStatus(run) {
         return run.status || (run.success === null ? 'running' : (run.success ? 'success' : 'failure'));
+    }
+
+    getRunStatusClasses(run) {
+        const status = this.getRunStatus(run);
+        const classes = {
+            running: 'bg-blue-50 text-blue-700 border border-blue-700 animate-pulse',
+            success: 'bg-green-50 text-green-700 border border-green-700',
+            failure: 'bg-red-50 text-red-700 border border-red-700'
+        };
+        return classes[status] || '';
     }
 
     getRunStatusText(run) {
@@ -176,17 +165,15 @@ class GitLabRunner {
             const response = await fetch(`/api/runs/${runId}`);
             const { data: run } = await response.json();
 
-            // Update output
             const outputElement = document.getElementById('output');
             outputElement.textContent = run.output || '';
             outputElement.scrollTop = outputElement.scrollHeight;
 
-            // Update UI to show which run is selected
             document.querySelectorAll('.run-item').forEach(item => {
-                item.classList.toggle('selected', item.dataset.runId === runId);
+                item.classList.toggle('ring-2', item.dataset.runId === runId);
+                item.classList.toggle('ring-blue-500', item.dataset.runId === runId);
             });
 
-            // Update page title
             document.title = `Run ${runId} (${this.getRunStatusText(run)}) - GitLab CI Runner`;
         } catch (error) {
             console.error('Failed to load run:', error);
@@ -207,17 +194,15 @@ class GitLabRunner {
     updateRunStatus(runId, success) {
         const runElement = document.querySelector(`[data-run-id="${runId}"]`);
         if (runElement) {
-            runElement.classList.remove('running', 'success', 'failure');
-            runElement.classList.add(success ? 'success' : 'failure');
+            runElement.className = `run-item p-4 mb-2.5 rounded-lg bg-white cursor-pointer transition-all hover:translate-x-1 hover:shadow-sm border border-gray-200 flex flex-col gap-2 ${success ? 'success' : 'failure'}`;
 
-            const statusBadge = runElement.querySelector('.status-badge');
+            const statusBadge = runElement.querySelector('div:first-child > div:last-child');
             if (statusBadge) {
-                statusBadge.className = `status-badge ${success ? 'success' : 'failure'}`;
+                statusBadge.className = `px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${success ? 'bg-green-50 text-green-700 border border-green-700' : 'bg-red-50 text-red-700 border border-red-700'}`;
                 statusBadge.textContent = success ? 'Success' : 'Failed';
             }
 
-            // Remove spinner if present
-            const spinner = runElement.querySelector('.spinner');
+            const spinner = runElement.querySelector('.animate-spin');
             if (spinner) {
                 spinner.remove();
             }
@@ -226,42 +211,27 @@ class GitLabRunner {
 
     showNotification(runId, success) {
         if ('Notification' in window && Notification.permission === 'granted') {
-            const title = `CI Run ${success ? 'Succeeded' : 'Failed'}`;
-            const options = {
-                body: `Run ${runId} completed at ${new Date().toLocaleString()}`,
-                icon: '/favicon.ico', // You can add a favicon for notifications
-                tag: `run-${runId}`, // Prevents duplicate notifications
-                requireInteraction: false, // Auto-close after a while
-                silent: false // Play sound
-            };
-
-            const notification = new Notification(title, options);
+            const notification = new Notification(
+                `CI Run ${success ? 'Succeeded' : 'Failed'}`,
+                {
+                    body: `Run ${runId} completed at ${new Date().toLocaleString()}`,
+                    icon: '/favicon.ico',
+                    tag: `run-${runId}`,
+                    requireInteraction: false,
+                    silent: false
+                }
+            );
             notification.onclick = () => {
-                // Focus on window and show the run when notification is clicked
                 window.focus();
                 this.showRun(runId);
             };
         }
     }
-
-    formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    }
 }
 
-// Initialize the application
 const app = new GitLabRunner();
 window.app = app;
 
-// Handle service worker if needed
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(error => {
         console.error('ServiceWorker registration failed:', error);

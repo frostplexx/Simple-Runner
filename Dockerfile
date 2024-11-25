@@ -4,21 +4,9 @@ FROM node:20-bookworm-slim AS builder
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
-    python3-pip \
     make \
     g++ \
     git \
-    build-essential \
-    curl \
-    wget \
-    vim \
-    nano \
-    net-tools \
-    iputils-ping \
-    dnsutils \
-    netcat-traditional \
-    valgrind \
-    procps \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
