@@ -13,19 +13,6 @@ services:
     restart: unless-stopped
     networks:
       - internal
-  zoraxy:
-    image: zoraxydocker/zoraxy:latest
-    container_name: zoraxy
-    user: 0:0
-    environment:
-      - TZ=Europe/Berlin
-    depends_on:
-      - runner
-    restart: unless-stopped
-    volumes:
-      - /home/ubuntu/runner/zoraxy:/opt/zoraxy/config/
-    networks:
-      - internal
 
 volumes:
   gitlab-runner-data:
