@@ -1,25 +1,33 @@
 version: '3.8'
-
 services:
   runner:
     build: .
     container_name: gitlab-runner
     user: 0:0
-    # ports:
-    #   - "3000:3000"
     environment:
       - NODE_ENV=production
+      - TZ=Europe/Berlin
     volumes:
       - /home/ubuntu/runner/data:/app/data
       - /home/ubuntu/repos:/app/repos
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    networks:
+      - internal
+  zoraxy:
+    image: ghcr.io/tobimori/zoraxy:latest
+    container_name: zoraxy
+    environment:
+      - TZ=Europe/Berlin
+    depends_on:
+      - runner
+    restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   gitlab-runner-data:
   gitlab-runner-repos:
+
+networks:
+  internal:
+    driver: bridge
