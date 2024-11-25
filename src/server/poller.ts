@@ -25,11 +25,13 @@ export class RepositoryPoller {
     async getLatestCommit(): Promise<GitLabCommit | null> {
         try {
             // Extract project path from repo URL
-            const repoPath = config.gitlab.repoUrl.replace('gitlab.com/', '').replace('.git', '');
+            const repoPath = config.gitlab.repoUrl.replace('gitlab.lrz.de/', '').replace('.git', '');
             const encodedPath = encodeURIComponent(repoPath);
 
+            console.log(`https://gitlab.lrz.de/api/v4/projects/${encodedPath}/repository/commits?ref_name=main`);
+
             const response = await fetch(
-                `https://gitlab.com/api/v4/projects/${encodedPath}/repository/commits?ref_name=main`,
+                `https://gitlab.lrz.de/api/v4/projects/${encodedPath}/repository/commits?ref_name=main`,
                 {
                     headers: {
                         'PRIVATE-TOKEN': config.gitlab.token
