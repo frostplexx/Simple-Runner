@@ -21,6 +21,8 @@ services:
     depends_on:
       - runner
     restart: unless-stopped
+    volumes:
+      - /home/ubuntu/runner/zoraxy:/opt/zoraxy/config/
     networks:
       - internal
 
