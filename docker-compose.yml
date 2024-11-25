@@ -14,7 +14,7 @@ services:
     networks:
       - internal
   zoraxy:
-    image: https://sysprak.kuipr.de:3000
+    image: zoraxydocker/zoraxy:latest
     container_name: zoraxy
     environment:
       - TZ=Europe/Berlin
