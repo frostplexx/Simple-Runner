@@ -13,6 +13,8 @@ services:
     restart: unless-stopped
     networks:
       - internal
+    labels:
+      - 'traefik.http.middlewares.mybasicauth.basicauth.users=sysprak:$2y$05$ytL452JITo8DUb9bumyhb..0glRB/dlwGjMdzMaEPE.idiVGm92my'
 
 volumes:
   gitlab-runner-data:
