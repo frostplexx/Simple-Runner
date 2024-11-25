@@ -16,6 +16,7 @@ services:
   zoraxy:
     image: zoraxydocker/zoraxy:latest
     container_name: zoraxy
+    user: 0:0
     environment:
       - TZ=Europe/Berlin
     depends_on:
