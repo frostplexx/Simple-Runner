@@ -14,7 +14,7 @@ services:
     networks:
       - internal
     labels:
-      - 'traefik.http.middlewares.mybasicauth.basicauth.users=sysprak:$2y$05$ytL452JITo8DUb9bumyhb..0glRB/dlwGjMdzMaEPE.idiVGm92my'
+      - 'traefik.http.middlewares.mybasicauth.basicauth.users=test:$2y$12$ci.4U63YX83CwkyUrjqxAucnmi2xXOIlEF6T/KdP9824f1Rf1iyNG'
 
 volumes:
   gitlab-runner-data:
